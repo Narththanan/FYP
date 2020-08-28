@@ -1,0 +1,4 @@
+# ignore log files and result files
+jmeter/logs/
+
+jmeter/results/

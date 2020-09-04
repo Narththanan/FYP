@@ -1,10 +1,13 @@
 #!/bin/bash
 
+# [17241461, 1688471, 310091, 154387] - new prime numbers
+
 # testing parameters
-concurrencies=(1 10) # 100 1000
-heap_sizes=(64m) # 128m 256m 512m 1g
-cores=(1.5) # 0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0
-prime_numbers=(35171)
+concurrencies=(1 10 20 50 100 200 500) # 1 10 20 50 100 200 500
+heap_sizes=(64m 128m 256M 512m 1g) # 64m 128m 256M 512m 1g
+cores=(0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0) # 0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0
+prime_numbers=(11 101 1009 10007 100003) # 11 101 1009 10007 100003
+# durations=(30 60 300 900) # new feature
 
 # setting jmeter test plan properties [can be given directly in the script]
 # ramp_up_time=0
@@ -26,42 +29,46 @@ do
 		do
 			for prime in ${prime_numbers[@]}
 			do
-				echo "Running test with [heap size: ${heap_size}, users: ${no_of_users}, cores: ${core}, prime number: ${prime}]"
+				#for duration in ${durations[@]}
+				#do
+					echo "Running test with [heap size: ${heap_size}, users: ${no_of_users}, cores: ${core}, prime number: ${prime}]"
 
-				# Run prime service inside container
-				echo "---> step(1/4) run prime service"
-				docker run -p 9002:9002 -d --cpus ${core} --entrypoint "" --name prime prime_service java -Xms${heap_size} -Xmx${heap_size} -jar prime-service-0.1.0.jar
+					# Run prime service inside container
+					echo "---> step(1/4) run prime service"
+					docker run -p 9002:9002 -d --cpus ${core} --entrypoint "" --name prime prime_service java -Xms${heap_size} -Xmx${heap_size} -jar prime-service-0.1.0.jar
 				
-				# getting and setting the prime containers ip address in bridge network
-				prime_ip_address=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' prime)
-				echo "ip: ${prime_ip_address}"
+					# getting and setting the prime containers ip address in bridge network
+					prime_ip_address=$(docker inspect --format '{{ .NetworkSettings.IPAddress }}' prime)
+					echo "ip: ${prime_ip_address}"
 
-				# Check service
-				echo "---> step(2/4) check service"
-				while true
-				do
-					echo "Checking service"
-					response_code=$(curl -s -o /dev/null -w "%{http_code}" http://${prime_ip_address}:9002/prime?number=${prime})
-					if [ $response_code -eq 200 ]
-					then
-						echo "Prime service started"
-						break
-					else
-						sleep 10
-					fi
-				done
+					# Check service
+					echo "---> step(2/4) check service"
+					while true
+					do
+						echo "Checking service"
+						response_code=$(curl -s -o /dev/null -w "%{http_code}" http://${prime_ip_address}:9002/prime?number=${prime})
+						echo "${response_code}"
+						if [ $response_code -eq 200 ]
+						then
+							echo "Prime service started"
+							break
+						else
+							sleep 10
+						fi
+					done
 		
-				# Run JMeter inside container and do the test
-				echo "---> step(3/4) run JMeter and do test"
-				sudo docker run --cpus ${jmeter_cpu_cores} --volume $(realpath ${volume_path}):${jmeter_path} --name jmeter justb4/jmeter -Jusers=${no_of_users} -Jprime=${prime} -Jip=${prime_ip_address} -n -t ${jmeter_path}/Test-Plan.jmx -l ${jmeter_path}/results/result-${heap_size}-${no_of_users}-${core}-${prime}.jtl -j ${jmeter_path}/logs/log-${heap_size}-${no_of_users}-${core}-${prime}.log
+					# Run JMeter inside container and do the test
+					echo "---> step(3/4) run JMeter and do test"
+					sudo docker run --cpus ${jmeter_cpu_cores} --volume $(realpath ${volume_path}):${jmeter_path} --name jmeter justb4/jmeter -Jusers=${no_of_users} -Jprime=${prime} -Jip=${prime_ip_address} -n -t ${jmeter_path}/Test-Plan.jmx -l ${jmeter_path}/results/result-${heap_size}-${no_of_users}-${core}-${prime}.jtl -j ${jmeter_path}/logs/log-${heap_size}-${no_of_users}-${core}-${prime}.log
 
 				
-				# Stop and remove both containers
-				echo "---> step(4/4) stop and remove containers"
-				docker stop prime
-				docker container prune -f
+					# Stop and remove both containers
+					echo "---> step(4/4) stop and remove containers"
+					docker stop prime
+					docker container prune -f
 
-				sleep 5									
+					sleep 5
+				#done							
 			done
 		done
 	done

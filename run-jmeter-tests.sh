@@ -1,25 +1,21 @@
 #!/bin/bash
 
-# [17241461, 1688471, 310091, 154387] - new prime numbers
-
 # testing parameters
-concurrencies=(1 10 20 50 100 200 500) # 1 10 20 50 100 200 500
-heap_sizes=(64m 128m 256M 512m 1g) # 64m 128m 256M 512m 1g
-cores=(0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0) # 0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0
-prime_numbers=(11 101 1009 10007 100003) # 11 101 1009 10007 100003
-# durations=(30 60 300 900) # new feature
+concurrencies=(1) # 1 10 20 50 100 200 500
+heap_sizes=(64m) # 64m 128m 256M 512m 1g
+cores=(0.2 0.4) # 0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0
+prime_numbers=(11) # 11 101 1009 10007 100003 , 11 1000003 10000019
+durations=(10)
 
-# setting jmeter test plan properties [can be given directly in the script]
-# ramp_up_time=0
-# hold_time=30
-# ip=localhost
-# port=9002
-# path=/prime
+# assign cpu core allocation to jmeter container
 jmeter_cpu_cores=1.5
 
 # setting volume path and jmeter path
 volume_path=./jmeter
 jmeter_path=/jmeter-files
+
+# test case number to help the automation process
+test_case=0
 
 for heap_size in ${heap_sizes[@]}
 do
@@ -29,9 +25,10 @@ do
 		do
 			for prime in ${prime_numbers[@]}
 			do
-				#for duration in ${durations[@]}
-				#do
-					echo "Running test with [heap size: ${heap_size}, users: ${no_of_users}, cores: ${core}, prime number: ${prime}]"
+				for duration in ${durations[@]}
+				do
+					test_case=$(($test_case + 1))
+					echo "Running test-${test_case} with [heap size: ${heap_size}, users: ${no_of_users}, cores: ${core}, prime number: ${prime}, duration: ${duration}]"
 
 					# Run prime service inside container
 					echo "---> step(1/4) run prime service"
@@ -59,7 +56,7 @@ do
 		
 					# Run JMeter inside container and do the test
 					echo "---> step(3/4) run JMeter and do test"
-					sudo docker run --cpus ${jmeter_cpu_cores} --volume $(realpath ${volume_path}):${jmeter_path} --name jmeter justb4/jmeter -Jusers=${no_of_users} -Jprime=${prime} -Jip=${prime_ip_address} -n -t ${jmeter_path}/Test-Plan.jmx -l ${jmeter_path}/results/result-${heap_size}-${no_of_users}-${core}-${prime}.jtl -j ${jmeter_path}/logs/log-${heap_size}-${no_of_users}-${core}-${prime}.log
+					sudo docker run --cpus ${jmeter_cpu_cores} --volume $(realpath ${volume_path}):${jmeter_path} --name jmeter justb4/jmeter -Jusers=${no_of_users} -Jprime=${prime} -Jip=${prime_ip_address} -Jduration=${duration} -n -t ${jmeter_path}/Test-Plan.jmx -l ${jmeter_path}/results/result-${test_case}-${heap_size}-${no_of_users}-${core}-${prime}-${duration}.jtl -j ${jmeter_path}/logs/log-${test_case}-${heap_size}-${no_of_users}-${core}-${prime}-${duration}.log
 
 				
 					# Stop and remove both containers
@@ -68,7 +65,7 @@ do
 					docker container prune -f
 
 					sleep 5
-				#done							
+				done							
 			done
 		done
 	done

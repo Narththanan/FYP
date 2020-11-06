@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # testing parameters
-concurrencies=(1) # 1 10 20 50 100 200 500
-heap_sizes=(64m) # 64m 128m 256M 512m 1g
-cores=(0.2 0.4) # 0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0
+concurrencies=(500) # 1 10 20 50 100 200 500
+heap_sizes=(512m) # 64m 128m 256M 512m 1g
+cores=(1.2) # 0.2 0.4 0.6 0.8 1.0 1.2 1.4 1.6 1.8 2.0
 prime_numbers=(11) # 11 101 1009 10007 100003 , 11 1000003 10000019
-durations=(10)
+durations=(30)
 
 # assign cpu core allocation to jmeter container
 jmeter_cpu_cores=1.5

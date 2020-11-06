@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Run jmeter tests
-./run-jmeter-tests.sh
+./run-order-service-test.sh
 
 # convert all jtl files into csv files
 ./jtl-to-csv.sh /home/narthu/interests/FYP/JMeter/apache-jmeter-5.2.1/bin ./jmeter/results ./csv-folder
